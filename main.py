@@ -8,6 +8,11 @@ SIZE = WIDTH, HEIGHT = 800, 600
 GREY = (128, 128, 128)
 GREEN = (0, 128, 0)
 WHITE = (200, 200, 200)
+COLOR = (255, 125, 0)
+COLOUR = (255, 20, 147)
+COLORER = (0, 250, 154)
+life = 3
+time = 0
 
 pg.init()
 pg.display.set_caption('Rally')
@@ -15,12 +20,16 @@ screen = pg.display.set_mode(SIZE)
 
 FPS = 120
 clock = pg.time.Clock()
+car_accident = 0
+block = False
 
 '''bg_image = pg.image.load('Image/road.jpg')
 bg_image_rect = bg_image.get_rect(topleft=(0, 0))
 bg_image_2_rect = bg_image.get_rect(topleft=(0, -HEIGHT))'''
 
 cars = [pg.image.load('Image/car1.png'), pg.image.load('Image/car2.png'), pg.image.load('Image/car3.png')]
+sound_car_accident = pg.mixer.Sound('Sound/udar.wav')
+font = pg.font.Font(None, 32)
 
 
 class Player(pg.sprite.Sprite):
@@ -132,6 +141,7 @@ class Car(pg.sprite.Sprite):
 
 
 all_sprite = pg.sprite.Group()
+cars_group = pg.sprite.Group()
 for r in range(2):
     all_sprite.add(Road(0, 0 if r == 0 else -HEIGHT))
 
@@ -143,11 +153,11 @@ while n < 6:
         continue
     else:
         list_x.append(x)
-        all_sprite.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
+        cars_group.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
         n += 1
 
 player = Player()
-all_sprite.add(player)
+all_sprite.add(cars_group, player)
 
 game = True
 while game:
@@ -155,8 +165,27 @@ while game:
         if e.type == pg.QUIT:
             game = False
 
+    if pg.sprite.spritecollideany(player, cars_group):
+        if block is False:
+            car_accident += 1
+            player.position[0] += 50 * random.randrange(-1, 2, 2)
+            player.angle = 50 * random.randrange(-1, 2, 2)
+            sound_car_accident.play()
+            life -= 1
+            block = True
+            print(car_accident)
+            if life <= 0:
+                game = False
+    else:
+        block = False
+
+    time += 0.01
+
     all_sprite.update()
     all_sprite.draw(screen)
+    screen.blit(font.render(f'Количество аварий = {car_accident}', True, COLOR), (45, 10))
+    screen.blit(font.render(f'Количество жизней = {life}', True, COLOUR), (500, 10))
+    screen.blit(font.render(str(int(time)), True, COLORER), (390, 10))
 
     pg.display.update()
     clock.tick(FPS)
