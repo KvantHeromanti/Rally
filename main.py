@@ -27,6 +27,7 @@ block = False
 game_starting = 0
 level = 40
 rgb = [0, 128, 0]
+list_x = []
 
 
 canister_image = pg.image.load('Image/canister.png')
@@ -161,24 +162,10 @@ cars_group = pg.sprite.Group()
 for r in range(2):
     all_sprite.add(Road(0, 0 if r == 0 else -HEIGHT))
 
-list_x = []
-n = 0
-while n < 6:
-    x = random.randrange(80, WIDTH, 80)
-    if game_starting == 1:
-        if x in list_x:
-            continue
-        else:
-            list_x.append(x)
-            cars_group.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
-            n += 1
-    else:
-        break
-
 fuel = Car(720, 45, fuel_image)
 
 player = Player()
-all_sprite.add(cars_group, player, fuel)
+all_sprite.add(player, fuel)
 
 
 def screen1():
@@ -198,7 +185,18 @@ while game:
         elif e.type == pg.MOUSEBUTTONDOWN:
             if e.button == 1:
                 if st_button_rect.collidepoint(e.pos):
-                    game_starting += 1
+                    game_starting = 1
+                    list_x.clear()
+                    n = 0
+                    while n < 6:
+                        x = random.randrange(80, WIDTH, 80)
+                        if x in list_x:
+                            continue
+                        else:
+                            list_x.append(x)
+                            cars_group.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
+                            n += 1
+                    all_sprite.add(cars_group)
                 elif stp_button_rect.collidepoint(e.pos):
                     game = False
 
@@ -213,6 +211,9 @@ while game:
             if life <= 0:
                 game_starting -= 1
                 life = 3
+                for s in cars_group:
+                    s.kill()
+                    print(cars_group, '!!!!!!!!!!!!!!!!!!!!!!')
     else:
         block = False
 
@@ -226,6 +227,9 @@ while game:
         level -= 0.01
         if level <= 0:
             screen1 = True
+            for s in cars_group:
+                s.kill()
+            print(cars_group, '!!!!!!!!!!!!!!!!!!!!!!')
         elif level <= 10:
             rgb[:2] = 250, 0
         elif level <= 20:
