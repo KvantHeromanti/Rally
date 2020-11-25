@@ -7,6 +7,8 @@ os.environ['SDL_VIDEO_CENTERED'] = '1'
 SIZE = WIDTH, HEIGHT = 800, 600
 GREY = (128, 128, 128)
 GREEN = (0, 128, 0)
+RED = (128, 0, 0)
+BLUE = (0, 0, 128)
 WHITE = (200, 200, 200)
 COLOR = (255, 125, 0)
 COLOUR = (255, 20, 147)
@@ -22,10 +24,20 @@ FPS = 120
 clock = pg.time.Clock()
 car_accident = 0
 block = False
+game_starting = 0
+level = 40
+rgb = [0, 128, 0]
 
-'''bg_image = pg.image.load('Image/road.jpg')
-bg_image_rect = bg_image.get_rect(topleft=(0, 0))
-bg_image_2_rect = bg_image.get_rect(topleft=(0, -HEIGHT))'''
+
+canister_image = pg.image.load('Image/canister.png')
+fuel_image = pg.image.load('Image/fuel.png')
+st_button = pg.image.load('Image/start_button.png')
+st_button_rect = st_button.get_rect(topleft=(240, 150))
+stp_button = pg.image.load('Image/stop_button.png')
+stp_button_rect = stp_button.get_rect(topleft=(240, 320))
+
+main_bg = pg.image.load('Image2/Patrick.png')
+main_bg_rect = main_bg.get_rect(topleft=(0, 0))
 
 cars = [pg.image.load('Image/car1.png'), pg.image.load('Image/car2.png'), pg.image.load('Image/car3.png')]
 sound_car_accident = pg.mixer.Sound('Sound/udar.wav')
@@ -120,8 +132,12 @@ class Car(pg.sprite.Sprite):
     def __init__(self, x, y, img):
         pg.sprite.Sprite.__init__(self)
 
-        self.image = pg.transform.flip(img, False, True)
-        self.speed = random.randint(2, 3)
+        if img == fuel_image:
+            self.image = img
+            self.speed = 0
+        else:
+            self.image = pg.transform.flip(img, False, True)
+            self.speed = random.randint(2, 3)
         self.rect = self.image.get_rect(center=(x, y))
 
     def update(self):
@@ -149,21 +165,42 @@ list_x = []
 n = 0
 while n < 6:
     x = random.randrange(80, WIDTH, 80)
-    if x in list_x:
-        continue
+    if game_starting == 1:
+        if x in list_x:
+            continue
+        else:
+            list_x.append(x)
+            cars_group.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
+            n += 1
     else:
-        list_x.append(x)
-        cars_group.add(Car(x, -cars[0].get_height(), cars[n] if n < len(cars) else random.choice(cars)))
-        n += 1
+        break
+
+fuel = Car(720, 45, fuel_image)
 
 player = Player()
-all_sprite.add(cars_group, player)
+all_sprite.add(cars_group, player, fuel)
+
+
+def screen1():
+    sc = pg.Surface(screen.get_size())
+    sc.fill(pg.Color('navy'))
+    sc.blit(main_bg, main_bg_rect)
+    sc.blit(st_button, (st_button_rect))
+    sc.blit(stp_button, (stp_button_rect))
+    screen.blit(sc, (0, 0))
+
 
 game = True
 while game:
     for e in pg.event.get():
         if e.type == pg.QUIT:
-            game = False
+            game_starting -= 1
+        elif e.type == pg.MOUSEBUTTONDOWN:
+            if e.button == 1:
+                if st_button_rect.collidepoint(e.pos):
+                    game_starting += 1
+                elif stp_button_rect.collidepoint(e.pos):
+                    game = False
 
     if pg.sprite.spritecollideany(player, cars_group):
         if block is False:
@@ -173,19 +210,35 @@ while game:
             sound_car_accident.play()
             life -= 1
             block = True
-            print(car_accident)
             if life <= 0:
-                game = False
+                game_starting -= 1
+                life = 3
     else:
         block = False
 
     time += 0.01
 
-    all_sprite.update()
-    all_sprite.draw(screen)
-    screen.blit(font.render(f'Количество аварий = {car_accident}', True, COLOR), (45, 10))
-    screen.blit(font.render(f'Количество жизней = {life}', True, COLOUR), (500, 10))
-    screen.blit(font.render(str(int(time)), True, COLORER), (390, 10))
+    if game_starting == 0:
+        screen1()
+        time = 0
+        screen.blit(font.render(f'Управление стрелками!', True, COLOR), (45, 10))
+    else:
+        level -= 0.01
+        if level <= 0:
+            screen1 = True
+        elif level <= 10:
+            rgb[:2] = 250, 0
+        elif level <= 20:
+            rgb[0] = 250
+
+        all_sprite.update()
+        all_sprite.draw(screen)
+        pg.draw.rect(
+            screen, rgb,
+            (fuel.rect.left + 10, fuel.rect.bottom - level - 8, 21, level))
+        screen.blit(font.render(f'твой рекорд', True, COLORER), (45, 11))
+        screen.blit(font.render(f'Количество жизней = {life}', True, COLOUR), (50, 550))
+        screen.blit(font.render(str(int(time)), True, COLORER), (200, 9))
 
     pg.display.update()
     clock.tick(FPS)
